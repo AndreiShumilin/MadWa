@@ -4,8 +4,8 @@ import scipy as sp
 import matplotlib.pyplot as plt
 
 
-from ..Io import Nassima_reads as io ### some library to read wannier files made by Nassima
-import wannier90io as w90io     ###### existing library to deal with wannier90 files, sometimes quite useful
+# from ..Io import Nassima_reads as io ### some library to read wannier files made by Nassima
+# import wannier90io as w90io     ###### existing library to deal with wannier90 files, sometimes quite useful
 from ..Math import Gmath
 from . import TBtools as tools
 
@@ -269,114 +269,114 @@ class TBH:
     #         self.Nat = len(self.at_names)  #(*) nubmer of atoms
 
 
-    def fromFiles2(self, fileHU, fileHD, inFile, centerFile1, centerFile2, Dim=2, reqLists = []):
-        r"""
-        Version of the initialization that tries to reconstructed "un-archived" Hamiltonian
-        from an "archived" one with "degeneracy" in Wigner-Seitz vectors
-        requires good wavefunction centers
-        """
-        self.Exist = True
+    # def fromFiles2(self, fileHU, fileHD, inFile, centerFile1, centerFile2, Dim=2, reqLists = []):
+    #     r"""
+    #     Version of the initialization that tries to reconstructed "un-archived" Hamiltonian
+    #     from an "archived" one with "degeneracy" in Wigner-Seitz vectors
+    #     requires good wavefunction centers
+    #     """
+    #     self.Exist = True
         
-        self.Dim = Dim
+    #     self.Dim = Dim
         
-        NH1, N = io.read_hr(fileHU)
-        NH2, N = io.read_hr(fileHD)
-        self.Nw = N
+    #     NH1, N = io.read_hr(fileHU)
+    #     NH2, N = io.read_hr(fileHD)
+    #     self.Nw = N
 
-        ######## reading information from .in and .xyz fles
-        ####### they are required in this version
-        with open(inFile, 'r') as fh:
-            parsed_win = w90io.parse_win_raw(fh.read())
-        a1 = np.array(parsed_win['unit_cell_cart']['a1'])
-        a2 = np.array(parsed_win['unit_cell_cart']['a2'])
-        a3 = np.array(parsed_win['unit_cell_cart']['a3'])
-        cell = np.array((a1,a2,a3))
-        self.cell = cell
-        self.rcell = tools.ReciprocalCell(self.cell)
-        self.cell2D = self.cell[:2,:2]
+    #     ######## reading information from .in and .xyz fles
+    #     ####### they are required in this version
+    #     with open(inFile, 'r') as fh:
+    #         parsed_win = w90io.parse_win_raw(fh.read())
+    #     a1 = np.array(parsed_win['unit_cell_cart']['a1'])
+    #     a2 = np.array(parsed_win['unit_cell_cart']['a2'])
+    #     a3 = np.array(parsed_win['unit_cell_cart']['a3'])
+    #     cell = np.array((a1,a2,a3))
+    #     self.cell = cell
+    #     self.rcell = tools.ReciprocalCell(self.cell)
+    #     self.cell2D = self.cell[:2,:2]
 
-        self.coords1 = io.read_centers(centerFile1, self.Nw)
-        self.coords2 = io.read_centers(centerFile2, self.Nw)
-        self.coords = (self.coords1 + self.coords2)/2    ###### Bad!!!!!!!
-        self.at_names, self.at_coords = io.read_centers_atoms(centerFile1)
-        self.Nat = len(self.at_names)
-        ######## ------------------------------------------------
+    #     self.coords1 = io.read_centers(centerFile1, self.Nw)
+    #     self.coords2 = io.read_centers(centerFile2, self.Nw)
+    #     self.coords = (self.coords1 + self.coords2)/2    ###### Bad!!!!!!!
+    #     self.at_names, self.at_coords = io.read_centers_atoms(centerFile1)
+    #     self.Nat = len(self.at_names)
+    #     ######## ------------------------------------------------
 
-        rvecAll = NH1.r_vectors + NH2.r_vectors
-        rvecAll = np.array(rvecAll, dtype=np.int32)
-        Nnas1 = len(NH1.r_vectors)
-        Nnas2 = len(NH2.r_vectors)
-        xm, xM = np.min(rvecAll[...,0]) , np.max(rvecAll[...,0])
-        ym, yM = np.min(rvecAll[...,1]) , np.max(rvecAll[...,1])
-        if self.Dim==3:
-            zm, zM = np.min(rvecAll[...,2]) , np.max(rvecAll[...,2])
+    #     rvecAll = NH1.r_vectors + NH2.r_vectors
+    #     rvecAll = np.array(rvecAll, dtype=np.int32)
+    #     Nnas1 = len(NH1.r_vectors)
+    #     Nnas2 = len(NH2.r_vectors)
+    #     xm, xM = np.min(rvecAll[...,0]) , np.max(rvecAll[...,0])
+    #     ym, yM = np.min(rvecAll[...,1]) , np.max(rvecAll[...,1])
+    #     if self.Dim==3:
+    #         zm, zM = np.min(rvecAll[...,2]) , np.max(rvecAll[...,2])
             
-        self.xM = np.max( np.array((np.abs(xm), np.abs(xM))) )        
-        self.yM = np.max( np.array((np.abs(ym), np.abs(yM))) )      
-        if self.Dim==3:
-            self.zM = np.max( np.array((np.abs(zm), np.abs(zM))) )      
+    #     self.xM = np.max( np.array((np.abs(xm), np.abs(xM))) )        
+    #     self.yM = np.max( np.array((np.abs(ym), np.abs(yM))) )      
+    #     if self.Dim==3:
+    #         self.zM = np.max( np.array((np.abs(zm), np.abs(zM))) )      
 
-        rvecs = []
-        if Dim==3:
-            for ix in range(xm,xM+1):
-                for iy in range(ym,yM+1):
-                    for iz in range(ym,yM+1):
-                        rvecs.append((ix,iy,iz))
-        else:
-            for i in range(xm,xM+1):
-                for j in range(ym,yM+1):
-                    rvecs.append((i,j,0))
-        rvecs = np.array(rvecs, dtype=np.int32)
-        self.rvecs = rvecs
+    #     rvecs = []
+    #     if Dim==3:
+    #         for ix in range(xm,xM+1):
+    #             for iy in range(ym,yM+1):
+    #                 for iz in range(ym,yM+1):
+    #                     rvecs.append((ix,iy,iz))
+    #     else:
+    #         for i in range(xm,xM+1):
+    #             for j in range(ym,yM+1):
+    #                 rvecs.append((i,j,0))
+    #     rvecs = np.array(rvecs, dtype=np.int32)
+    #     self.rvecs = rvecs
 
-        self.dH1 = {}
-        self.dH2 = {}
-        for rv in rvecs:
-            rvt = tuple(rv)
-            self.dH1[rvt] = np.zeros((self.Nw, self.Nw), dtype=np.complex128)
-            self.dH2[rvt] = np.zeros((self.Nw, self.Nw), dtype=np.complex128)
+    #     self.dH1 = {}
+    #     self.dH2 = {}
+    #     for rv in rvecs:
+    #         rvt = tuple(rv)
+    #         self.dH1[rvt] = np.zeros((self.Nw, self.Nw), dtype=np.complex128)
+    #         self.dH2[rvt] = np.zeros((self.Nw, self.Nw), dtype=np.complex128)
 
         
-        for i in range(Nnas1):
-            rv = NH1.r_vectors[i]
-            rvt = tuple(rv)
-            H1 = NH1.hr_matrix[i] 
+    #     for i in range(Nnas1):
+    #         rv = NH1.r_vectors[i]
+    #         rvt = tuple(rv)
+    #         H1 = NH1.hr_matrix[i] 
 
-            lst = None
-            for ls1 in reqLists:
-                if rvt in ls1:
-                    lst = ls1
-            if lst is None:
-                self.dH1[rvt] = H1
-            else:
-                for i1 in range(self.Nw):
-                    for i2 in range(self.Nw):
-                        r1 = self.coords1[i1]
-                        r2 = self.coords1[i2]
-                        rv2 = bestRvec(r1, r2, lst, self.cell)
-                        rvt2 = tuple(rv2)
-                        self.dH1[rvt2][i1,i2] = H1[i1,i2]
+    #         lst = None
+    #         for ls1 in reqLists:
+    #             if rvt in ls1:
+    #                 lst = ls1
+    #         if lst is None:
+    #             self.dH1[rvt] = H1
+    #         else:
+    #             for i1 in range(self.Nw):
+    #                 for i2 in range(self.Nw):
+    #                     r1 = self.coords1[i1]
+    #                     r2 = self.coords1[i2]
+    #                     rv2 = bestRvec(r1, r2, lst, self.cell)
+    #                     rvt2 = tuple(rv2)
+    #                     self.dH1[rvt2][i1,i2] = H1[i1,i2]
 
-        for i in range(Nnas2):
-            rv = NH2.r_vectors[i]
-            rvt = tuple(rv)
-            H2 = NH2.hr_matrix[i] 
+    #     for i in range(Nnas2):
+    #         rv = NH2.r_vectors[i]
+    #         rvt = tuple(rv)
+    #         H2 = NH2.hr_matrix[i] 
 
-            lst = None
-            for ls1 in reqLists:
-                if rvt in ls1:
-                    lst = ls1
-            if lst is None:
-                self.dH2[rvt] = H2
-            else:
-                for i1 in range(self.Nw):
-                    for i2 in range(self.Nw):
-                        r1 = self.coords2[i1]
-                        r2 = self.coords2[i2]
-                        rv2 = bestRvec(r1, r2, lst, self.cell)
-                        rvt2 = tuple(rv2)
-                        self.dH2[rvt2][i1,i2] = H2[i1,i2]
-        return self
+    #         lst = None
+    #         for ls1 in reqLists:
+    #             if rvt in ls1:
+    #                 lst = ls1
+    #         if lst is None:
+    #             self.dH2[rvt] = H2
+    #         else:
+    #             for i1 in range(self.Nw):
+    #                 for i2 in range(self.Nw):
+    #                     r1 = self.coords2[i1]
+    #                     r2 = self.coords2[i2]
+    #                     rv2 = bestRvec(r1, r2, lst, self.cell)
+    #                     rvt2 = tuple(rv2)
+    #                     self.dH2[rvt2][i1,i2] = H2[i1,i2]
+    #     return self
     
 
     def getH(self,rv):
@@ -439,16 +439,16 @@ class TBH:
         
 
 
-def ReadInputFiles(fileHU, fileHD, inFile=None, centerFile1=None, centerFile2=None, Dim=2):
-    TBH1 = TBH()
-    TBH1.fromFiles(fileHU, fileHD, inFile=inFile, centerFile1=centerFile1, centerFile2=centerFile2, Dim=Dim)
-    return TBH1
+# def ReadInputFiles(fileHU, fileHD, inFile=None, centerFile1=None, centerFile2=None, Dim=2):
+#     TBH1 = TBH()
+#     TBH1.fromFiles(fileHU, fileHD, inFile=inFile, centerFile1=centerFile1, centerFile2=centerFile2, Dim=Dim)
+#     return TBH1
 
 
-def ReadInputFilesDG(fileHU, fileHD, inFile, centerFile1, centerFile2, reqLists, Dim=2):
-    TBH1 = TBH()
-    TBH1.fromFiles2(fileHU, fileHD, inFile=inFile, centerFile1=centerFile1, centerFile2=centerFile2, reqLists=reqLists, Dim=Dim)
-    return TBH1
+# def ReadInputFilesDG(fileHU, fileHD, inFile, centerFile1, centerFile2, reqLists, Dim=2):
+#     TBH1 = TBH()
+#     TBH1.fromFiles2(fileHU, fileHD, inFile=inFile, centerFile1=centerFile1, centerFile2=centerFile2, reqLists=reqLists, Dim=Dim)
+#     return TBH1
 
 
 

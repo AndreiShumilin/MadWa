@@ -51,10 +51,16 @@ class TBasic:
         self.H_ij = H_ij
         self.rvects = rvects.astype(np.float64)
         self.Irvects = rvects.astype(np.int32)   ### Integer version or rvects, lets keep it
+        
         self.deg = deg
         self.num_wann = Par[0]
         self.num_rvec = Par[1]
 
+        # index of (0,0,0) r-vector
+        self.iZeroR = -1000
+        for irv, rv in enumerate(self.Irvects):
+            if (rv == np.zeros(3, dtype=np.int32)).all:
+                self.ZeroR = irv
 
         win_data = readWin(self.win_file)
         self.cell = win_data['cell'].astype(np.float64)
@@ -75,6 +81,12 @@ class TBasic:
         self.deg = deg
         self.num_wann = H_ij.shape[1]
         self.num_rvec = len(rvects)
+
+        # index of (0,0,0) r-vector
+        self.iZeroR = -1000
+        for irv, rv in enumerate(self.Irvects):
+            if (rv == np.zeros(3, dtype=np.int32)).all:
+                self.ZeroR = irv
 
         self.cell = cell
         self.kpts = kpts
@@ -139,18 +151,17 @@ class TBasic:
         else:
             return bands_w90(self.kpath, self.recip_cell, self.num_wann, self.H_ij, self.rvects, self.deg, self.cell, Nst)
 
-
-
     def readProjections(self, seedname):
-        infile = seedname + '.win'
-        amnfile = seedname + '.amn'
-        Ufile = seedname + '_u.mat'
-        UDISfile = seedname + '_u_dis.mat'
-        eigfile = seedname + '.eig'
+        """
+        reads information on the wannier projections and construct the matrix W relaing wannier Functions 
+        to the projections 
+        """
+        WR = WanRes(seedname=seedname, Short=False)
         
-        winD = read.readWin(infile)
-        
-        self.atoms = winD['atoms']
+        self.atoms = WR.fullwinD['atoms']
+        self.window = (WR.Emin, WR.Emax)
+        self.W = WR.W
+        self.proj = WR.fullwinD['proj'] 
         
 
         

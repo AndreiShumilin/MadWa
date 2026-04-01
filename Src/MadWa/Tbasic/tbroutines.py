@@ -1,9 +1,7 @@
 import numpy as np
 import numpy.linalg as la
 import matplotlib.pyplot as plt
-import os
-import sys
-import wannier90io as w90io
+
 import numba as nb
 
 #-----------------------------------------------------#
