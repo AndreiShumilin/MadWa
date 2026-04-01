@@ -11,8 +11,8 @@ __pycache__/
 .ipynb_checkpoints
 
 # Ignore tutorials for now
-Tutorials
+Tutorials/
 
 
 # A folder to run temporary projects
-TMP
+TMP/
