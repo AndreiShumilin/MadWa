@@ -146,7 +146,7 @@ class TBasic:
         amnfile = seedname + '.amn'
         Ufile = seedname + '_u.mat'
         UDISfile = seedname + '_u_dis.mat'
-        eigfile = seedname + '.eig
+        eigfile = seedname + '.eig'
         
         winD = read.readWin(infile)
         
