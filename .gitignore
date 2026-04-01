@@ -1,0 +1,18 @@
+build/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+.pytest_cache
+*.py[codz]
+*$py.class
+*.egg-info
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Ignore tutorials for now
+Tutorials
+
+
+# A folder to run temporary projects
+TMP
