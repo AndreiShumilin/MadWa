@@ -5,7 +5,7 @@
 import numpy as np
 
 import numba as nb
-from ..wannierIO import *
+from .. import wannierIO as wIO
 from .tbroutines import *
 
 __all__ = ['TBasic']
@@ -22,6 +22,7 @@ class TBasic:
         # Initialize placeholders (populated by read_file)
         self.H_ij = None
         self.rvects = None
+        self.Irvects = None
         self.deg = None
         self.num_wann = 0
         self.cell = None
@@ -47,7 +48,7 @@ class TBasic:
             self.hr_file = hr_file
         if not win_file is None:
             self.win_file = win_file
-        H_ij, rvects, deg, Par = readHR(self.hr_file)
+        H_ij, rvects, deg, Par = wIO.readHR(self.hr_file)
         self.H_ij = H_ij
         self.rvects = rvects.astype(np.float64)
         self.Irvects = rvects.astype(np.int32)   ### Integer version or rvects, lets keep it
@@ -57,12 +58,9 @@ class TBasic:
         self.num_rvec = Par[1]
 
         # index of (0,0,0) r-vector
-        self.iZeroR = -1000
-        for irv, rv in enumerate(self.Irvects):
-            if (rv == np.zeros(3, dtype=np.int32)).all:
-                self.ZeroR = irv
+        self.iZeroR, ex1 = self.findVecNumber((0,0,0))
 
-        win_data = readWin(self.win_file)
+        win_data = wIO.readWin(self.win_file)
         self.cell = win_data['cell'].astype(np.float64)
         self.kpts = win_data['kpts'] 
         self.kpath = win_data['kpath'] 
@@ -71,22 +69,23 @@ class TBasic:
         self.recip_cell = self._get_reciprocal_lattice()
         self.ready = True
 
-    def manual(self, H_ij, rvects, deg, cell=np.eye(3), kpts=None, kpath=None):
+    def manual(self, H_ij, rvects, deg=None, cell=np.eye(3), kpts=None, kpath=None):
         r"""
         Manualy initiates the object from the user-provided information
         """
         self.H_ij = H_ij.astype(np.complex128)
         self.rvects = rvects.astype(np.float64)
         self.Irvects = rvects.astype(np.int32)
-        self.deg = deg
         self.num_wann = H_ij.shape[1]
         self.num_rvec = len(rvects)
 
+        if deg is None:
+            self.deg = [1 for i in range(self.num_rvec)]
+        else:
+            self.deg = deg
+
         # index of (0,0,0) r-vector
-        self.iZeroR = -1000
-        for irv, rv in enumerate(self.Irvects):
-            if (rv == np.zeros(3, dtype=np.int32)).all:
-                self.ZeroR = irv
+        self.iZeroR, ex1 = self.findVecNumber((0,0,0))
 
         self.cell = cell
         self.kpts = kpts
@@ -121,10 +120,12 @@ class TBasic:
     # ------------------------------------------------------------
     def get_Hk(self, kvec):
         """Wrapper for the njit Hk function."""
+
+        kvec1 = np.asarray(kvec, dtype=np.float64)
         if not self.ready:
             return None
-            
-        return Hk_njit(self.H_ij, self.rvects, self.deg, kvec, self.cell)
+           
+        return Hk_njit(self.H_ij, self.rvects, self.deg, kvec1, self.cell)
 
     # ------------------------------------------------------------
     # Hamiltonian by rvect
@@ -141,6 +142,7 @@ class TBasic:
                 
         zerroH = np.zeros((self.Nw, self.Nw), dtype=np.complex128)
         return zerroH
+        
     # ------------------------------------------------------------
     # get_bands  wrapper
     # ------------------------------------------------------------
@@ -151,17 +153,68 @@ class TBasic:
         else:
             return bands_w90(self.kpath, self.recip_cell, self.num_wann, self.H_ij, self.rvects, self.deg, self.cell, Nst)
 
+    # ------------------------------------------------------------
+    # a little bit generalized version of bands
+    # ------------------------------------------------------------
+    def bands(self, Nst, Kpath = None):
+        """Wrapper for the njit Bands function."""
+        if (Kpath is None) and (not(self.kpath is None)):
+            Kpath = self.kpath
+            
+        if (not self.ready) or (Kpath is None):
+            return None
+        else:
+            bands = bands_w90(Kpath, self.recip_cell, self.num_wann, self.H_ij, self.rvects, self.deg, self.cell, Nst)
+            kpoi, xx, Xmarks= get_kpath(Kpath, self.recip_cell, Nst)
+            return xx, bands, Xmarks
+
+   
+
     def readProjections(self, seedname):
         """
         reads information on the wannier projections and construct the matrix W relaing wannier Functions 
         to the projections 
         """
-        WR = WanRes(seedname=seedname, Short=False)
+        WR = wIO.WanRes(seedname=seedname, Short=False)
         
         self.atoms = WR.fullwinD['atoms']
         self.window = (WR.Emin, WR.Emax)
         self.W = WR.W
+                # Reminder:
+                # W[ir, iw, ip] = < W_{iw} | P_{ip}(R[ir]) >
+                # W_{iw} --- wannier function iw
+                # P_{ip}(R[ir]) --- projection ip in the unit cell displaced by vector R[ir]
         self.proj = WR.fullwinD['proj'] 
+        self.projections_exist = True
+
+    def manualProjections(self, atoms, proj, W, window=None):
+        """
+        manualy set projections for Toy models
+        """
+        self.atoms = atoms
+        self.proj = proj
+        self.W = W
+        if window is None:
+            self.window = (-100.0,100.0)
+        else:
+            window = window
+        self.projections_exist = True
+
+    def findVecNumber(self, rv):
+        """
+        find the number of vector rv and checks if it exists
+        rv - integer vector
+        """
+        arv = np.asarray(rv)
+        exi = False
+        Inum = -1
+        for irv, rv1 in enumerate(self.Irvects):
+            if (rv1==arv).all():
+                exi = True
+                Inum = irv
+                #return Inum, exi
+        return Inum, exi
+        
         
 
         

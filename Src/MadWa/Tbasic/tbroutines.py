@@ -8,6 +8,7 @@ import numba as nb
 #---------- Routines for Hr attributes ---------------#
 #-----------------------------------------------------#
 
+
 def cellVolume(cell, Dim2D = False):
     a1 = cell[0,...]
     a2 = cell[1,...]
@@ -101,7 +102,7 @@ def get_kpath(points, recp, N):
 # ------------------------------------------------------------------------------
 @nb.njit
 def bands_w90(kpaths, recip, num_wann, H_ij, rvects, deg, cell, Nst):
-    kpoi, xx, Xmarks= kpath_w90(kpaths,recip, Nst)
+    kpoi, xx, Xmarks= get_kpath(kpaths,recip, Nst)
     Nk = len(kpoi)
     bands = np.zeros((Nk,num_wann), dtype=np.float64)
     for i in range(Nk):
