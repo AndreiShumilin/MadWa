@@ -112,5 +112,5 @@ class combinedModel:
         TBC = tbasic.TBasic()
         rvecs = self.TBu.rvects.copy()
         Hij = self.combinedHamiltonian(M, SOrvecs=SOrvecs)
-        TBC.manual(Hij, rvecs)
+        TBC.manual(Hij, rvecs, cell=self.cell)
         return TBC

@@ -1,7 +1,6 @@
 import numpy as np
 import numpy.linalg
 import scipy as sp
-import matplotlib.pyplot as plt
 import numba as nb
 
 from . import tightbinding as tight

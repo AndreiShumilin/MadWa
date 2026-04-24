@@ -40,6 +40,27 @@ def makebasis(v, dmin=0.01):
     return ax,ay,az
 
 
+
+def make_reciprocal_cell(cell):
+    a1 = cell[0]
+    a2 = cell[1]
+    a3 = cell[2]
+    V = cellVolume(cell, Dim2D = False)
+
+    b1 = 2*np.pi*(np.cross(a2,a3))/V
+    b2 = 2*np.pi*(np.cross(a3,a1))/V
+    b3 = 2*np.pi*(np.cross(a1,a2))/V
+
+    #Kcell = np.array([b1,b2,b3], dtype=np.float64)
+    Kcell = np.zeros((3,3), dtype=np.float64)
+    Kcell[0] = b1
+    Kcell[1] = b2
+    Kcell[2] = b3
+
+    return Kcell
+
+
+
 @nb.njit
 def fractional_to_cartesian(kfrac, recip):
     return kfrac @ recip

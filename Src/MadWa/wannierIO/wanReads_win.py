@@ -68,8 +68,6 @@ def win_projections(lines):
 
 def win_cell(lines):
     Nl = len(lines)
-    cell_marker1 = 'begin unit_cell_cart'
-    cell_marker2 = 'end unit_cell_cart'
     toread = False
     for iln in range(Nl):
         if cell_marker1 in lines[iln]:

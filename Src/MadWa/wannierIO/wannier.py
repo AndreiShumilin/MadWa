@@ -58,13 +58,17 @@ class WanRes:
     r"""
     class to store and analize results of wannier90
     """
-    def __init__(self, seedname=None, Short=True):
+    def __init__(self, seedname=None, Short=True, readTB=False):
+        r"""
+        readTB - if true, will read Hamiltonian from _tb file instead of _hr
+        """
         if seedname is None:
             self.created = False
             self.projections = False
         else:
             infile = seedname + '.win'
             hrfile = seedname + '_hr.dat'
+            tbfile = seedname + '_tb.dat'
             amnfile = seedname + '.amn'
             Ufile = seedname + '_u.mat'
             UDISfile = seedname + '_u_dis.mat'
@@ -76,7 +80,10 @@ class WanRes:
             self.atoms = winD['atoms']
             self.Nw = winD['nw']
             self.Nb = winD['nb']
-            H, rvecs, deg, Par = read.readHR(hrfile)
+            if readTB:
+                rvecs, H, r_mat, deg, Par = read.read_tb_file(tbfile)
+            else:
+                H, rvecs, deg, Par = read.readHR(hrfile)
             
             self.Hr = H
             self.rvecs = rvecs

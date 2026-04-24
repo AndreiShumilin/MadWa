@@ -7,6 +7,7 @@ import numpy as np
 import numba as nb
 from .. import wannierIO as wIO
 from .tbroutines import *
+from ..Utils import utils as ut
 
 __all__ = ['TBasic']
 
@@ -15,8 +16,9 @@ class TBasic:
     """
     Basic Tight-Binding container for Wannier90 Hamiltonians.
     """
-    def __init__(self, hr_file = None, win_file=None):
+    def __init__(self, hr_file = None, win_file=None, tb_file = None):
         self.hr_file = hr_file
+        self.tb_file = tb_file
         self.win_file = win_file
         
         # Initialize placeholders (populated by read_file)
@@ -34,10 +36,16 @@ class TBasic:
         self.recip_cell = None
         self.ready = False
         self.projections_exist = False
+
+        self.fromTB = False
         
         # Automatically load the data when the object is created
         if not ( (self.hr_file is None) or (self.win_file is None)):
             self.read_file()
+
+        # Automatically load the data if the object is created with tb-file
+        if not ( (self.tb_file is None) or (self.win_file is None)):
+            self.read_file_tb()
 
   
     #--------------------------------------------------------------------------------#
@@ -68,6 +76,40 @@ class TBasic:
  
         self.recip_cell = self._get_reciprocal_lattice()
         self.ready = True
+
+    
+    def read_file_tb(self, tb_file = None, win_file=None):
+        r"""
+        Version of the initialization by reading tb-file of wannier90
+        """
+        if not tb_file is None:
+            self.tb_file = tb_file
+        if not win_file is None:
+            self.win_file = win_file
+            
+        rvects, H_ij, r_mat, deg, Par = wIO.read_tb_file(self.tb_file)
+
+        self.H_ij = H_ij
+        self.rvects = rvects.astype(np.float64)
+        self.Irvects = rvects.astype(np.int32)   ### Integer version or rvects, lets keep it
+        
+        self.deg = deg
+        self.num_wann = Par[0]
+        self.num_rvec = Par[1]
+
+        # index of (0,0,0) r-vector
+        self.iZeroR, ex1 = self.findVecNumber((0,0,0))
+
+        win_data = wIO.readWin(self.win_file)
+        self.cell = win_data['cell'].astype(np.float64)
+        self.kpts = win_data['kpts'] 
+        self.kpath = win_data['kpath'] 
+        
+ 
+        self.recip_cell = self._get_reciprocal_lattice()
+        self.fromTB = True
+        self.ready = True
+    
 
     def manual(self, H_ij, rvects, deg=None, cell=np.eye(3), kpts=None, kpath=None):
         r"""
@@ -170,12 +212,16 @@ class TBasic:
 
    
 
-    def readProjections(self, seedname):
+    def readProjections(self, seedname, readTB=None):
         """
         reads information on the wannier projections and construct the matrix W relaing wannier Functions 
         to the projections 
         """
-        WR = wIO.WanRes(seedname=seedname, Short=False)
+        if readTB is None:
+            readTB = self.fromTB
+        
+        WR = wIO.WanRes(seedname=seedname, Short=False, readTB=readTB)
+        
         
         self.atoms = WR.fullwinD['atoms']
         self.window = (WR.Emin, WR.Emax)
@@ -214,6 +260,55 @@ class TBasic:
                 Inum = irv
                 #return Inum, exi
         return Inum, exi
+
+    def EFermi_to_Charge(self, Kgr, Ef, D=3):
+        r"""
+        Calculates the total number of electrons based on Fermi level position Ef
+        and k-grid Kgr. 
+        D --- system dimension
+        """
+        cell = self.cell
+        rcell = self.recip_cell
+        Va = ut.cellVolume(cell, Dim2D=(D==2) )
+        Vb = ut.cellVolume(rcell, Dim2D=(D==2) )
+        Nkx, Nky, Nkz, _ = Kgr.shape
+        gK = (Va*Vb)/((2*np.pi)**D *Nkx *Nky *Nkz)
+        
+        charge = 0
+        for ix in range(Nkx):
+            for iy in range(Nky):
+                for iz in range(Nkz):
+                    k = Kgr[ix,iy,iz]
+                    Hk = self.get_Hk(k)
+                    ens = np.linalg.eigh(Hk)[0]
+                    N1 = np.sum(ens < Ef)
+                    charge += N1 * gK
+        return charge
+
+    def Total_energy(self, Kgr, Ef, D=3):
+        r"""
+        calculates total energy based no K-grid Kgr and 
+        Fermi energy Ef
+        D --- system dimension
+        """
+        cell = self.cell
+        rcell = self.recip_cell
+        Va = ut.cellVolume(cell, Dim2D=(D==2) )
+        Vb = ut.cellVolume(rcell, Dim2D=(D==2) )
+        Nkx, Nky, Nkz, _ = Kgr.shape
+        gK = (Va*Vb)/((2*np.pi)**D *Nkx *Nky *Nkz)
+        
+        charge = 0
+        for ix in range(Nkx):
+            for iy in range(Nky):
+                for iz in range(Nkz):
+                    k = Kgr[ix,iy,iz]
+                    Hk = self.get_Hk(k)
+                    ens = np.linalg.eigh(Hk)[0]
+                    ens1 = ens*(ens < Ef)
+                    N1 = np.sum(ens1)
+                    charge += N1 * gK
+        return charge
         
         
 

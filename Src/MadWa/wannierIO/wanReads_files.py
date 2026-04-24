@@ -204,5 +204,5 @@ def read_tb_file(tb_file):
                 # Z projection
                 r_mat[r_idx, i, j, 2] = float(data[6]) + 1j * float(data[7])
                 
-    return rvects, h_ij, r_mat, deg, (num_wann, num_revc)
+    return rvects, h_ij, r_mat, deg, (num_wann, num_rvec)
 
