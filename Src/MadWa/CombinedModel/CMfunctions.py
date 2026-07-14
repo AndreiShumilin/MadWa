@@ -108,6 +108,7 @@ def projections_from_out(fname: str, cell=np.eye(3)):
         prj = {}
         data = lin.split()
         centerA = float(data[0])*cell[0] + float(data[1])*cell[1] + float(data[2])*cell[2]
+        prj['atom'] = 'At'
         prj['center'] = centerA
         prj['l'] = int(data[3])
         prj['mr'] = int(data[4])

@@ -2,10 +2,11 @@ import numpy as np
 import numpy.linalg
 import scipy as sp
 
-# from ..Io import Nassima_reads as io ### some library to read wannier files made by Nassima
-# import wannier90io as w90io     ###### existing library to deal with wannier90 files, sometimes quite useful
+from ..Io import Nassima_reads as io ### some library to read wannier files made by Nassima
+import wannier90io as w90io     ###### existing library to deal with wannier90 files, sometimes quite useful
 from ..Math import Gmath
 from . import TBtools as tools
+#from .Io import Nassima_reads as io
 
 __all__ = ['TBH', 'ReadInputFiles']
 

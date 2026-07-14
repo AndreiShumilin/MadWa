@@ -43,3 +43,18 @@ def KGrid(Nkx, Nky, Nkz,  cell, rKXmax=1, rKYmax=1, rKZmax=1, regime2D=True):
         gK = (Va*Vb)/((2*np.pi)**3 *Nkx *Nky *Nkz)
         gK *= rKXmax*rKYmax*rKZmax
     return Kgrid1, gK
+
+
+
+@nb.jit(nopython=True)
+def FlattenGrid(Kgr):
+    r"""
+    Make an "iterable" (Nk x 3) array from a (Nx x Ny x Nz x 3) k-grid
+    """
+    Nx = Kgr.shape[0]
+    Ny = Kgr.shape[1]
+    Nz = Kgr.shape[2]
+    Nk = Nx*Ny*Nz
+    flGrid = Kgr.reshape((Nk,3))
+    return flGrid
+
