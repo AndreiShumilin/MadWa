@@ -31,6 +31,9 @@ class TBasic:
         self.points = None
         self.kpath = None
         self.kpts = None
+        self.atoms = None
+        self.atcoords = None
+        self.attype =  None
  #       self.labels = None
         self.num_rvec = 0
         self.recip_cell = None
@@ -72,7 +75,9 @@ class TBasic:
         self.cell = win_data['cell'].astype(np.float64)
         self.kpts = win_data['kpts'] 
         self.kpath = win_data['kpath'] 
-        
+        self.atoms = win_data['atoms']
+        self.atcoords = win_data['atom_coords']
+        self.attype =  win_data['atom_types']
  
         self.recip_cell = self._get_reciprocal_lattice()
         self.ready = True
@@ -103,7 +108,10 @@ class TBasic:
         win_data = wIO.readWin(self.win_file)
         self.cell = win_data['cell'].astype(np.float64)
         self.kpts = win_data['kpts'] 
-        self.kpath = win_data['kpath'] 
+        self.kpath = win_data['kpath']
+        self.atoms = win_data['atoms']
+        self.atcoords = win_data['atom_coords']
+        self.attype =  win_data['atom_types']
         
  
         self.recip_cell = self._get_reciprocal_lattice()

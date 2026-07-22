@@ -3,12 +3,14 @@ import numpy.linalg as la
 import matplotlib.pyplot as plt
 import numba as nb
 import MadWa.Tbasic.tbroutines as tbroutines
+import MadWa.Utils.grids as grids
 
 ##################################################################
 # This returns the Berry curvature in a specific kpoint
 ##################################################################
 @nb.njit
 def TBerry(H_ij, rvects, deg, kvec, cell, fermi_energy):
+    
     dim = H_ij.shape[1]
     Hk = np.zeros((dim, dim), dtype=np.complex128)
     dH_dkx = np.zeros((dim, dim), dtype=np.complex128)
@@ -50,12 +52,15 @@ def TBerry(H_ij, rvects, deg, kvec, cell, fermi_energy):
             term_xy = (v_x[n, m] * v_y[m, n] - v_y[n, m] * v_x[m, n])
             term_xz = (v_x[n, m] * v_z[m, n] - v_z[n, m] * v_x[m, n])
             term_yz = (v_y[n, m] * v_z[m, n] - v_z[n, m] * v_y[m, n])
+            
             total_omg_xy += (1j * term_xy).real / (dE**2)
             total_omg_xz += (1j * term_xz).real / (dE**2)
             total_omg_yz += (1j * term_yz).real / (dE**2)
 
+
     return E, total_omg_xy, total_omg_xz, total_omg_yz
-    
+
+        
 ###############################################################
 # This is a normalization function that is usefull for the 2D map
 #################################################################
@@ -97,8 +102,9 @@ def TBerry_2D(H_ij,rvects,deg, cell, corner, b1, b2, k_mesh, fermi_energy, recip
             E, omg_xy, omg_xz, omg_yz = TBerry(H_ij, rvects, deg, kvec_crystal, cell, fermi_energy)
             berry_map_xy[i,j] = omg_xy
             berry_map_xz[i,j] = omg_xz
-            berry_map_yz[i,j] = omg_yz
-
+            #berry_map_yz[i,j] = omg_yz
+            berry_map_xy[i,j] = omg_xy
+            band_grid[:,i,j]  = E
     return band_grid,  berry_map_xy,  berry_map_xz,  berry_map_yz
 
 def save_berry_plot(s1, s2, map_data, band_grid, fermi_energy, component_name):
@@ -114,7 +120,7 @@ def save_berry_plot(s1, s2, map_data, band_grid, fermi_energy, component_name):
 
     cp = plt.contourf(s1, s2, map_data.T, levels=ticks, origin='lower', extend='both')
 
-    # 3. Overlay Fermi Surface
+    #Overlay Fermi Surface
     dim = band_grid.shape[0]
     for n in range(dim):
         if np.min(band_grid[n]) < fermi_energy < np.max(band_grid[n]):
@@ -136,7 +142,8 @@ def save_berry_plot(s1, s2, map_data, band_grid, fermi_energy, component_name):
     cbar.set_label(rf'$\Omega_{{{component_name}}}$ (Log Scale)')
 
     plt.title(f'Berry Curvature $\Omega_{{{component_name}}}$ with Fermi Surface')
-    plt.axis('off')
+    #plt.axis('off')
+    plt.show()
     filename = f"Omega_{component_name}_with_fermi_lines.pdf"
     plt.savefig(filename, bbox_inches='tight')
     print(f"Saved: {filename}")
@@ -162,57 +169,69 @@ def berry_2Dmap(H_ij,rvects,deg, cell, corner, b1, b2, k_mesh, fermi_energy, rec
     save_berry_plot(s1, s2,  berry_map_yz, band_grid, fermi_energy, 'yz')
     print('Saving 2D maps for the Berry curvature')
     header = f"{'Omega_yz':>19} {'Omega_xz':>19} {'Omega_xy':>19}"
-    combined = np.column_stack((berry_map_yz.flatten(), berry_map_xz.flatten(), berry_map_xy.flatten()))
+    #combined = np.column_stack((berry_map_yz.flatten(), berry_map_xz.flatten(), berry_map_xy.flatten()))
+    combined = np.column_stack((omg_yz_2D.flatten(), omg_xz_2D.flatten(), omg_xy_2D.flatten()))
+    
     np.savetxt('TBerry_curv_kslice.dat',combined, fmt='%20e', header = header )
     print('Data saved in TBerry_curv_kslice.dat file!')
-    
+
 @nb.njit
-def AHC(H_ij, rvects, deg, cell, kmesh, fermi_energy, recip_cell,  Dim2D = False):
-    V = tbroutines.cellVolume(cell, Dim2D)
-    sigma_xy = 0
-    sigma_xz = 0
-    sigma_yz = 0
-    recip_cell =np.ascontiguousarray(recip_cell)
-    kvect = np.zeros((1,3), dtype=np.float64)
-    ## Factor to get the conductivity in units of S/cm
-    e2_h = 3.874e-5  # S (quantum of conductance)
-    to_S_cm = - (e2_h / (2 * np.pi)) * 1e8
-    if Dim2D:
-        b1 = recip_cell[0]
-        b2 = recip_cell[1]
-        Nk = kmesh[0]* kmesh[1]
-        dx = np.linspace(0,1,kmesh[0])
-        dy = np.linspace(0,1,kmesh[1])
-        for i in range(kmesh[0]):
-            for j in range(kmesh[1]):
-                kvect = b1*dx[i]+b2*dy[j]
-                E, omega_xy, omega_xz, omega_yz = TBerry(H_ij, rvects, deg, kvect, cell, fermi_energy)
-                sigma_xy +=  omega_xy
-                sigma_xz +=  omega_xz
-                sigma_yz +=  omega_yz
-        sigma_xy = sigma_xy/(Nk*V)
-        sigma_xz = sigma_xz/(Nk*V)
-        sigma_yz = sigma_yz/(Nk*V)
-    else:
-        b1 = recip_cell[0]
-        b2 = recip_cell[1]
-        b3 = recip_cell[2]
-        Nk = kmesh[0]* kmesh[1]*kmesh[2]
-        dx = np.linspace(0,1,kmesh[0])
-        dy = np.linspace(0,1,kmesh[1])
-        dz = np.linspace(0,1,kmesh[2])
-        for i in range(kmesh[0]):
-            for j in range(kmesh[1]):
-                for k in range(kmesh[2]):
-                    kvect = b1*dx[i]+b2*dy[j]+b3*dz[k]
-                    #Aqui la suma de todos los k
-                    E, omega_xy, omega_xz, omega_yz = TBerry(H_ij, rvects, deg, kvect, cell, fermi_energy)
-                    #E, omega_xy, omega_xz, omega_yz = TBerry2(H_ij, rvects, deg, kvect, cell)
-                    sigma_xy +=  omega_xy
-                    sigma_xz +=  omega_xz
-                    sigma_yz +=  omega_yz
-        sigma_xy = sigma_xy*to_S_cm/(Nk*V)
-        sigma_xz = sigma_xz*to_S_cm/(Nk*V)
-        sigma_yz = sigma_yz*to_S_cm/(Nk*V)
-    return sigma_xy, sigma_xz, sigma_yz
+def berry_coarse(centers, H_ij, rvects, deg, cell, fermi_energy):
     
+    n = len(centers)
+    vect_omg_xy = np.zeros(n, dtype = np.float64)
+    vect_omg_xz = np.zeros(n, dtype = np.float64)
+    vect_omg_yz = np.zeros(n, dtype = np.float64)
+    
+    for c in range(n):
+        kvect =  centers[c]
+        _, omega_xy, omega_xz, omega_yz = TBerry(H_ij, rvects, deg, kvect, cell, fermi_energy)
+        vect_omg_xy[c]=omega_xy
+        vect_omg_xz[c]=omega_xz
+        vect_omg_yz[c]=omega_yz
+
+    return vect_omg_xy, vect_omg_xz, vect_omg_yz
+
+@nb.njit
+def AHC_ref(omg_xy, omg_yz, omg_xz, weights, cell, Dim2D = False):
+    e2 = (1.602176634e-19)**2
+    h_bar = 1.054571817e-34
+    e2_h = e2/h_bar  # Siemens (S)
+    to_S_cm =  -e2_h * 1e8 
+    s_xy = 0.0
+    s_yz = 0.0
+    s_xz = 0.0
+
+    a1 = cell[0,...]
+    a2 = cell[1,...]
+    a3 = cell[2,...]
+    
+    if Dim2D:
+  
+        a12 = np.cross(a1,a2)
+        Va = np.sqrt(np.sum(a12*a12))
+    else:
+
+        a12 = np.cross(a1,a2)
+        Va = abs(np.dot(a12,a3))
+    
+    N= len(weights)
+    print(f"total cells: {N}")
+
+    for i in range(N):
+        w = weights[i]
+        s_xy += omg_xy[i]*w
+        s_xz += omg_xz[i]*w
+        s_yz += omg_yz[i]*w
+        
+    sigma_xy = s_xy*to_S_cm/Va
+    sigma_xz = s_xz*to_S_cm/Va
+    sigma_yz = s_yz*to_S_cm/Va
+
+    return sigma_xy, sigma_xz, sigma_yz
+
+    
+    
+
+
+
