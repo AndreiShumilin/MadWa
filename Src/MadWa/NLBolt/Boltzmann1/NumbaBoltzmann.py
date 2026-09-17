@@ -10,7 +10,7 @@ from ..Math import NLBoltMath as math
 Ezero = 1e-15
 Const_f = 1.519267458894051e-10
 
-__all__ = ['Ezero','Const_f','DisFunction','NumbaGetF','NumbaInitDerivs','NumbagetCurrentsF']
+__all__ = ['Ezero','Const_f','DisFunction','NumbaGetF','NumbaInitDerivs','NumbagetCurrentsF','NumbaDtensor']
 
 @nb.njit
 def CheckBand(iw, mu, T, extr):
@@ -116,7 +116,8 @@ def NumbaGetF(Efield, Order, TEV, mu, tau, AParti, farShape, AlleDerivsU, AlleDe
 #     return eDerivsU, eDerivsD
 
 
-@nb.jit(nopython=True, parallel=True)
+#@nb.jit(nopython=True, parallel=True)
+@nb.njit
 def NumbaInitDerivs(DerShape, rvlist, HlistU, HlistD, KGr, der_dk, cell, dim, der_N, MaxOrd, der_dkGau):
 
     Nx, Ny, Nz, Nw, Nderiv = DerShape
@@ -126,7 +127,8 @@ def NumbaInitDerivs(DerShape, rvlist, HlistU, HlistD, KGr, der_dk, cell, dim, de
     eDerivsU = np.zeros(DerShapeT, dtype=np.float64)
     eDerivsD = np.zeros(DerShapeT, dtype=np.float64)
 
-    for ix in nb.prange(Nx):
+    #for ix in nb.prange(Nx):
+    for ix in range(Nx):
         for iy in range(Ny):
             for iz in range(Nz):
                 k1 = KGr[ix,iy,iz]
@@ -177,3 +179,37 @@ def NumbagetCurrentsF(jdir, farU, farD, DerShape, eDerivsU, eDerivsD, mu, TEV=1,
 
 
 #############################################################################################
+
+
+
+@nb.njit
+def NumbaDtensor(eDeriv, T=1.0, mu=0.0, tau=1.0):
+    r"""
+    calculates difusion tensor based on calculated energy derivatives "eDeriv"
+    T - temperature in energy units (eV)
+    mu - chemical potential
+    tau - relaxation time (fs)
+
+    Result is:
+    D tensor in internal units: (eV*A)^2 * fs
+    g - effective density of states: sum (-df/dE) in 1/eV
+    """
+    Nkx, Nky, Nkz, Nb, Nder = eDeriv.shape
+    Dten = np.zeros((3,3), dtype=np.float64)    
+    gtilde = 0
+    for ix in range(Nkx):
+        for iy in range(Nky):
+            for iz in range(Nkz):
+                for ib in range(Nb):
+                    eder1 = eDeriv[ix,iy,iz,ib]
+                    en = eder1[0]
+                    v = eder1[1:]
+                    fe = math.BoltzmanDeriv((en-mu)/T, 1)/(T)
+                    gtilde += (-fe)
+                    D1 = np.zeros((3,3), dtype=np.float64)    
+                    for ia in range(3):
+                        for ib in range(3):
+                            D1[ia,ib] = (-fe)*tau*v[ia]*v[ib]
+                    Dten += D1
+    Dten /= gtilde
+    return Dten, gtilde

@@ -17,6 +17,10 @@ K_to_EV = 0.8617333262145177e-4
 Const_current_2D = 2434134.8234366034
 Const_current_3D = 2434134.8234366034e10
 
+EV_to_J = 1.602176634e-19
+hbar = 1.054571817e-34
+Vconst1 = EV_to_J/(1e10*hbar)
+Dconst1 = Vconst1*Vconst1*1e-15 
 
 
 
@@ -268,6 +272,20 @@ class Boltzmann:
             plt.show()
         return lphi, resU, resD
 
+    def getDtensors(self, tau, mu=0.0, TK=300):
+        r"""
+        The result should be in SI units of diffusion tensor [m^2/s]
+        """
+        TEV = TK*K_to_EV
+        Du0, gu = NumbaDtensor(self.eDerivsU, T=TEV, mu=mu, tau=tau)
+        Dd0, gd = NumbaDtensor(self.eDerivsD, T=TEV, mu=mu, tau=tau)
+        Du1 = Du0 * Dconst1
+        Dd1 = Dd0 * Dconst1
+        return Du1, Dd1
+        
+
+
+    
 ##################### below are technical procedures to be used mainly inside the library ####################################
     
 
@@ -310,6 +328,37 @@ class Boltzmann:
         jD = jD0*ccur/self.Vcell
         
         return jU, jD
+
+
+    def sigmaTensor(self, tau=1.0, mu=0.0, TK=300):
+        r"""
+        The result should be in SI units of conductivity [A/V] in 2D 
+        and in SI units of conductivity density in 3D
+        """
+        ebasis = np.eye(3, dtype=np.float64)
+        sigTu = np.zeros((3,3), dtype=np.float64)
+        sigTd = np.zeros((3,3), dtype=np.float64)
+        for ia in range(3):
+            for ib in range(3):
+                eF = ebasis[ib]
+                eJ = ebasis[ia]
+                jU, jD = self.getCurrentDensitiesE(eF, 1, TK, mu=mu, tau=tau, edir=eJ)
+                sigTu[ia,ib] = jU
+                sigTd[ia,ib] = jD
+                
+        # if self.dim==2:
+        #     ccur = Const_current_2D
+        # else:
+        #     ccur = Const_current_3D
+            
+        # sigTu *= ccur/self.Vcell
+        # sigTd *= ccur/self.Vcell
+        
+        return sigTu, sigTd
+                
+                
+        
+        
 
 
         
