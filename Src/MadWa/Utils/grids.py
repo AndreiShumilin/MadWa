@@ -118,7 +118,7 @@ def coarse_kgrid_cells(Nkx, Nky, Nkz,  cell, Dim2D=False ):
     return centers, vertices, weights
     
 @nb.njit
-def subdivide_cells(tag_cell, vertices, centers, weigths, nx, ny, nz, Dim2D):
+def subdivide_cells(tag_cell, vertices, centers, weigths, nx= 2, ny=2, nz=2, Dim2D=False):
     """
     Routine subdivide the target cell in a nx ny nz size grid. Recalculate the vertices and the centers and the weights for the new cells
     """
@@ -192,90 +192,3 @@ def subdivide_cells(tag_cell, vertices, centers, weigths, nx, ny, nz, Dim2D):
 
     return child_vertices, child_centers, child_weights
 
-# def refine_mesh(Nkx, Nky, Nkz,H_ij, rvects, deg, cell, fermi_energy, tol, nx,ny,nz, Dim2D = False, max_level=2):
-#     centers, vertices, weights = coarse_kgrid_cells(Nkx, Nky, Nkz,  cell, Dim2D)
-#     vect_omg_xy, vect_omg_xz, vect_omg_yz = berry_coarse(centers, H_ij, rvects, deg, cell, fermi_energy)
-#     # Track refinement level per cell
-#     levels = np.zeros(len(weights), dtype=np.int64)
-
-#     for level in range(max_level):
-#         n_cells = len(weights)
-#         refine_ids = []
-#         # ERROR ESTIMATOR
-#         for i in range(n_cells):
-
-#             local_error = max(abs(vect_omg_xy[i]), abs(vect_omg_xz[i]), abs(vect_omg_yz[i]))
-#             if local_error > tol:
-#                 refine_ids.append(i)
-
-#                 #print(local_error)
-#         # STOP CONDITION
-#         if len(refine_ids) == 0:
-
-#             print(f"Converged at level {level}")
-#             break
-
-#         keep_mask = np.ones(n_cells, dtype=bool)
-
-#         for idx in refine_ids:
-#             keep_mask[idx] = False
-
-#         new_centers = list(centers[keep_mask])
-#         new_vertices = list(vertices[keep_mask])
-#         new_weights = list(weights[keep_mask])
-
-#         new_omg_xy = list(vect_omg_xy[keep_mask])
-#         new_omg_xz = list(vect_omg_xz[keep_mask])
-#         new_omg_yz = list(vect_omg_yz[keep_mask])
-
-#         new_levels = list(levels[keep_mask])
-
-#         #Refinement of the target cells:
-
-#         for idx in refine_ids:
-#             child_vertices, child_centers, child_weights = subdivide_cells(idx, vertices, centers, weights, nx, ny, nz, Dim2D)
-#             n_child = len(child_weights)
-#             # Compute Berry CUrvature in the children cells
-#             child_omg_xy = np.zeros(n_child)
-#             child_omg_xz = np.zeros(n_child)
-#             child_omg_yz = np.zeros(n_child)
-
-#             for c in range(n_child):
-
-#                 kvect = child_centers[c]
-#                 _, omg_xy, omg_xz, omg_yz = tberry.TBerry(H_ij, rvects, deg, kvect, cell, fermi_energy)
-
-#                 child_omg_xy[c] = omg_xy
-#                 child_omg_xz[c] = omg_xz
-#                 child_omg_yz[c] = omg_yz
-
-#             #Join parents and childrens
-#             for c in range(n_child):
-#                 new_centers.append(child_centers[c])
-#                 new_vertices.append(child_vertices[c])
-#                 new_weights.append(child_weights[c])
-                
-#                 new_omg_xy.append(child_omg_xy[c])
-#                 new_omg_xz.append(child_omg_xz[c])
-#                 new_omg_yz.append(child_omg_yz[c])
-                
-#                 new_levels.append(levels[idx] + 1)
-
-#         centers = np.asarray(new_centers)
-#         vertices = np.asarray(new_vertices)
-#         weights = np.asarray(new_weights)
-        
-#         vect_omg_xy = np.asarray(new_omg_xy)
-#         vect_omg_xz = np.asarray(new_omg_xz)
-#         vect_omg_yz = np.asarray(new_omg_yz)
-
-#         levels = np.asarray(new_levels)
-
-#         print(f"Level = {level + 1}")
-#         print(f"Total cells = {len(weights)}")
-#         print(f"Refined cells = {len(refine_ids)}")
-#         print(f"Total weight = {np.sum(weights)}")
-        
-#     sigma_xy, sigma_xz, sigma_yz = AHC_ref(vect_omg_xy, vect_omg_yz, vect_omg_xz, weights,cell, Dim2D)
-    
-#     return sigma_xy, sigma_xz, sigma_yz
