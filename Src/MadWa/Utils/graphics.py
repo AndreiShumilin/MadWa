@@ -21,9 +21,24 @@ def curveLine(p0, p1, crv, Np=30):
     yar = np.array(yl)
     return xar, yar
 
+def Draw2DCell(cell, linewidth=0.5):
+    xx1 = [0, cell[0,0]]
+    yy1 = [0, cell[0,1]]
+    plt.plot(xx1,yy1, 'k-', linewidth=linewidth)
+    xx1 = [cell[0,0], cell[0,0]+cell[1,0]]
+    yy1 = [cell[0,1], cell[0,1]+cell[1,1]]
+    plt.plot(xx1,yy1, 'k-', linewidth=linewidth)
+    xx1 = [cell[0,0]+cell[1,0], cell[1,0]]
+    yy1 = [cell[0,1]+cell[1,1], cell[1,1]]
+    plt.plot(xx1,yy1, 'k-', linewidth=linewidth)
+    xx1 = [cell[1,0],0]
+    yy1 = [cell[1,1],0]
+    plt.plot(xx1,yy1, 'k-', linewidth=linewidth)
+
 
 def DrawTBHam2D(rvecs, Htb, cen, cell=np.eye(3), MaxNx = 10000, MaxNy=10000, curMax=0.3, 
-                cmapS=pl.cm.viridis, cmapLn=pl.cm.bwr, absMax=0.01, fileF=None, AtCoords=None, AtSize=10):
+                cmapS=pl.cm.viridis, cmapLn=pl.cm.bwr, absMax=0.01, fileF=None, AtCoords=None, AtSize=10,
+               PlotCell=True):
     Nrv = rvecs.shape[0]
     Nw = Htb.shape[1]
 
@@ -50,6 +65,10 @@ def DrawTBHam2D(rvecs, Htb, cen, cell=np.eye(3), MaxNx = 10000, MaxNy=10000, cur
     print(HElMax)
 
     plt.figure(figsize=(15,15))
+
+    if PlotCell:
+        Draw2DCell(cell)
+    
     for irv,rv in enumerate(rvecs):
         if np.abs(rv[0]) < MaxNx:
             if np.abs(rv[1]) < MaxNy:

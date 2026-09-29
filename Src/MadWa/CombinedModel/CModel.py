@@ -31,12 +31,15 @@ class combinedModel:
         self.RMapD =  makeRMap(self.TBd.Irvects)
 
         self.findVecNumber = self.TBu.findVecNumber
+        self.irv0 = self.findVecNumber(  (0,0,0) )[0]
 
+        self.SimpleConnection = False     ### True if up and down models are in the same basis
         self.WUDconnect = False
         
     def connect_with_proj(self):
         self.Wud =Wud_from_proj_All(self.TBu.W, self.TBd.W, self.TBu.Irvects, self.TBd.Irvects, self.RMapU, self.RMapD)
         self.Wdu =Wud_from_proj_All(self.TBd.W, self.TBu.W, self.TBd.Irvects, self.TBu.Irvects, self.RMapD, self.RMapU)
+        self.SimpleConnection = False 
         self.WUDconnect = True
 
     def connect_with_1(self):
@@ -45,6 +48,7 @@ class combinedModel:
         ir1 = self.TBu.findVecNumber( (0,0,0) )[0]
         self.Wud[ir1] += np.eye(self.Nw)
         self.Wdu[ir1] += np.eye(self.Nw)
+        self.SimpleConnection = True
         self.WUDconnect = True
 
     def getDetailedProjections(self, outfile=None):
