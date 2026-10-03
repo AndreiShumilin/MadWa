@@ -270,6 +270,8 @@ def PartialOperatorMatrix(Nw, blocks, atname, l, ldir, wf1, wf2,
         l = target projection type (0:s, 1:p, 2:d, 3:f)  (can be a symbol or a number)
         ldir = Relevant direction of L-operator (0: x, 1:y, 2:z) (can be a symbol or a number)
         wf1, wf2 - numbers of wavefunctions to calculate the matrix element of L
+
+        logFunction - the function of string, used to display error messages (by default - print)
     Returns:
         NwxNw Matrix [complex128]
     """
