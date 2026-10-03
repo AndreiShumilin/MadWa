@@ -7,7 +7,7 @@ from ..Tbasic import tbasic
 from ..Tbasic import tbroutines 
 from ..Utils import utils as ut
 
-from . import loperators as loper
+from ..Utils import loperators as loper
 
 __all__ = ['s0','sx','sy','sz','makeRMap','readRMap','projections_from_TB','projections_from_out','Wud_from_proj_1','Wud_from_proj_All']
 

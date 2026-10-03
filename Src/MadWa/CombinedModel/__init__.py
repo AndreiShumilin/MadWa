@@ -1,3 +1,3 @@
 from . import CMfunctions
 from . import CModel
-from . import loperators
+from ..Utils import loperators

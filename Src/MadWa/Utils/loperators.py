@@ -11,6 +11,12 @@ import typing
 l_sizes_dict = {0: 1, 1: 3, 2: 5, 3: 7}
 l_goodlist = [0, 1, 2, 3]
 
+
+absLdict = {'s':0, 'p':1, 'd':2, 'f':3,  'S':0, 'P':1, 'D':2, 'F':3}
+CartesianDict = {'x':0, 'y':1, 'z':2,   'X':0, 'Y':1, 'Z':2}
+
+
+
 s = 1 / np.sqrt(2)
 Tl1 = np.array([[0, 1j * s, s], [-1j, 0, 0], [0, -1j * s, s]])
 Tl2 = np.array([[0, 0, 0, -s, 1j * s], [0, s, -1j * s, 0, 0], [-1, 0, 0, 0, 0],
@@ -216,3 +222,106 @@ def L_BlocksToMatr(Nf: int, lst: typing.List[Block], xiDict) -> typing.Tuple[np.
                 Ly[i1, i2] = blk.Ly[i, j] * power
                 Lz[i1, i2] = blk.Lz[i, j] * power
     return Lx, Ly, Lz
+
+
+def L_BlocksToMatr(Nf: int, lst: typing.List[Block], xiDict={}):
+    """
+    Convert block L operators to full matrices.
+
+    Args:
+        Nf (int): Total number of Wannier functions.
+        lst (List[Block]): List of Block objects.
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray, np.ndarray]: Lx, Ly, Lz matrices.
+    """
+    Lx = np.zeros((Nf, Nf), dtype=np.complex128)
+    Ly = np.zeros((Nf, Nf), dtype=np.complex128)
+    Lz = np.zeros((Nf, Nf), dtype=np.complex128)
+    for blk in lst:
+        if not hasattr(blk, 'Lx'):
+            continue
+        aname = blk.atom_name
+        info = (aname, blk.l, blk.l)
+        if info in xiDict.keys():
+            power = xiDict[info]
+        else:
+            power = 1
+            
+        for i in range(blk.N):
+            for j in range(blk.N):
+                i1 = blk.psiN[i]
+                i2 = blk.psiN[j]
+                Lx[i1, i2] = blk.Lx[i, j] * power
+                Ly[i1, i2] = blk.Ly[i, j] * power
+                Lz[i1, i2] = blk.Lz[i, j] * power
+    return Lx, Ly, Lz
+
+
+def PartialOperatorMatrix(Nw, blocks, atname, l, ldir, wf1, wf2,
+                         logFunction = print):
+    """
+    
+
+    Args:
+        Nw (int): Total number of Wannier functions.
+        blocks (List[Block]): List of Block objects.
+        atname = atom name
+        l = target projection type (0:s, 1:p, 2:d, 3:f)  (can be a symbol or a number)
+        ldir = Relevant direction of L-operator (0: x, 1:y, 2:z) (can be a symbol or a number)
+        wf1, wf2 - numbers of wavefunctions to calculate the matrix element of L
+    Returns:
+        NwxNw Matrix [complex128]
+    """
+
+    if isinstance(l, str):
+        if l in absLdict.keys():
+            li = absLdict[l]
+        else:
+            li = -1000
+    else:
+        li = l
+
+    if isinstance(ldir, str):
+        if ldir in CartesianDict.keys():
+            ldiri = CartesianDict[ldir]
+        else:
+            ldiri = -1000
+    else:
+        ldiri = ldir
+
+    Res = np.zeros((Nw, Nw), dtype=np.complex128)
+    if not ((ldiri>=0) and  (ldiri < 3)):
+        logFunction('L=operators: Incorrect cartesian direction, returning zero matrix \n')
+        return Res
+    
+    found = False
+    for blk in blocks:
+        if not hasattr(blk, 'Lx'):
+            continue
+        if (blk.atom_name == atname) and (blk.l == li):
+            found = True
+            i1 = blk.psiN[wf1]
+            i2 = blk.psiN[wf2]
+
+            if ldiri == 0:
+                oper = blk.Lx
+            elif ldiri == 1:
+                oper = blk.Ly
+            else:
+                oper = blk.Lz
+            
+            Res[i1, i2] = oper[wf1, wf2]
+            Res[i2, i1] = oper[wf2, wf1]
+    if not found:
+        logFunction('L=operators: information on atom/l not found, returning zero matrix \n')
+        return Res
+    
+    return Res
+
+
+
+
+
+
+

@@ -7,7 +7,7 @@ from ..Utils import utils as ut
 from ..Tbasic import tbasic
 from ..Tbasic import tbroutines
 
-from . import loperators as loper
+from ..Utils import loperators as loper
 
 from .CMfunctions import *
 
