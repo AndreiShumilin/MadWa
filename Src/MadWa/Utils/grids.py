@@ -43,7 +43,65 @@ def KGrid(Nkx, Nky, Nkz,  cell, rKXmax=1, rKYmax=1, rKZmax=1, regime2D=True):
         gK = (Va*Vb)/((2*np.pi)**3 *Nkx *Nky *Nkz)
         gK *= rKXmax*rKYmax*rKZmax
     return Kgrid1, gK
+
+
+#@nb.jit(nopython=True)
+def UniKGridVar(NkL,  cell, Dim=2, cutCenter=None):
+    r"""
+    creates a uniform Grid, but in variable format
+    Nkx x Nky x Nkz x 4 :  (kx, ky, kz, gk) for each Grid element
+    """
     
+    Nkx,Nky,Nkz = NkL
+    a1 = cell[0,...]
+    a2 = cell[1,...]
+    a3 = cell[2,...]
+
+    b1 = np.zeros(4, dtype=np.float64)
+    b2 = np.zeros(4, dtype=np.float64)
+    b3 = np.zeros(4, dtype=np.float64)
+    b1[:3] = 2*np.pi*np.cross(a2, a3)/ np.dot(a1, np.cross(a2, a3))
+    b2[:3] = 2*np.pi*np.cross(a3, a1)/ np.dot(a2, np.cross(a3, a1))
+    b3[:3] = 2*np.pi*np.cross(a1, a2)/ np.dot(a3, np.cross(a1, a2))
+
+    if (not cutCenter is None):
+        mKX, mKY, mKz = cutCenter
+    else:
+        mKX, mKY, mKz = 1,1,1
+    
+    if (Dim == 2):
+        mKZ = 0.0
+        Nkz = 1
+
+    if (Dim==2):
+        Sa = np.linalg.norm( np.cross(a1,a2)  )
+        Sb = np.linalg.norm( np.cross(b1[:3],b2[:3])  )
+        gK = Sa*Sb/(4*np.pi*np.pi*Nkx*Nky)
+        gK *= mKXmax*mKY
+    else:
+        a12 = np.cross(a1,a2)
+        Va = np.dot(a12,a3)
+        b12 = np.cross(b1[:3],b2[:3])
+        Vb = np.dot(b3[:3],b12)
+        gK = (Va*Vb)/((2*np.pi)**3 *Nkx *Nky *Nkz)
+        gK *= mKX*mKY*mKZ
+    
+    Kgrid1 = np.zeros((Nkx,Nky,Nkz,4), dtype=np.float64)
+
+    akx = np.linspace(-mKX,mKX, Nkx )
+    aky = np.linspace(-mKY,mKY, Nky )
+    akz = np.linspace(-mKZ,mKZ, Nkz )
+    for ix in range(Nkx):
+        for iy in range(Nky):
+            for iz in range(Nkz):
+                Kgrid1[ix,iy,iz] = akx[ix]*(b1/2) + aky[iy]*(b2/2) + akz[iz]*(b3/2)
+                Kgrid1[ix,iy,iz,4] = gK
+
+    return Kgrid1
+
+
+
+
 @nb.njit
 def coarse_kgrid_cells(Nkx, Nky, Nkz,  cell, Dim2D=False ):
     """
