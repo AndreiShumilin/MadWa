@@ -45,24 +45,24 @@ def DrawTBHam2D(rvecs, Htb, cen, cell=np.eye(3), MaxNx = 10000, MaxNy=10000, cur
     i0 = -1
     for irv,rv in enumerate(rvecs):
         if ((rv[0]==0) and (rv[1]==0) and (rv[2]==0) ):
-            print(rv, irv)
+            #print(rv, irv)
             i0 = irv
     if i0<0:
         print('Pozor: no zero r-vector!')
         return None
-    print(i0, rvecs[i0])
+    #print(i0, rvecs[i0])
 
     H0 = Htb[i0]
     Ens = np.real(np.diagonal(H0))
     Emax = np.max(Ens)
     Emin = np.min(Ens)
-    print(Emin, Emax)
+    #print(Emin, Emax)
 
     H0nd = H0.copy()
     for i in range(Nw):
         H0nd[i,i]=0.0
     HElMax = np.max(np.abs(H0nd))
-    print(HElMax)
+    #print(HElMax)
 
     plt.figure(figsize=(15,15))
 

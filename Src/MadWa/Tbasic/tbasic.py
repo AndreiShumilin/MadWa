@@ -39,6 +39,7 @@ class TBasic:
         self.recip_cell = None
         self.ready = False
         self.projections_exist = False
+        self.centers = None
 
         self.fromTB = False
         
@@ -63,6 +64,8 @@ class TBasic:
         self.H_ij = H_ij
         self.rvects = rvects.astype(np.float64)
         self.Irvects = rvects.astype(np.int32)   ### Integer version or rvects, lets keep it
+        for irv, rv in enumerate(self.Irvects):
+            self.Rvdict[tuple(rv)] = irv
         
         self.deg = deg
         self.num_wann = Par[0]
@@ -97,6 +100,9 @@ class TBasic:
         self.H_ij = H_ij
         self.rvects = rvects.astype(np.float64)
         self.Irvects = rvects.astype(np.int32)   ### Integer version or rvects, lets keep it
+        self.Rvdict = {}
+        for irv, rv in enumerate(self.Irvects):
+            self.Rvdict[tuple(rv)] = irv
         
         self.deg = deg
         self.num_wann = Par[0]
@@ -128,6 +134,8 @@ class TBasic:
         self.Irvects = rvects.astype(np.int32)
         self.num_wann = H_ij.shape[1]
         self.num_rvec = len(rvects)
+        for irv, rv in enumerate(self.Irvects):
+            self.Rvdict[tuple(rv)] = irv
 
         if deg is None:
             self.deg = [1 for i in range(self.num_rvec)]
@@ -240,6 +248,9 @@ class TBasic:
                 # P_{ip}(R[ir]) --- projection ip in the unit cell displaced by vector R[ir]
         self.proj = WR.fullwinD['proj'] 
         self.projections_exist = True
+
+    def readCenters(self, cenfile):
+        self.centres = wIO.wanReads_files.readXYZ(cenfile)
 
     def manualProjections(self, atoms, proj, W, window=None):
         """

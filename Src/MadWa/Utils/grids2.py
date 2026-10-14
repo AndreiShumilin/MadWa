@@ -3,6 +3,8 @@ import numba as nb
 
 import matplotlib.pyplot as plt
 
+import MadWa.Tbasic.tbroutines as tbroutines
+
 
 # Important note: order of the verticies:
 # 2D: 0:(00), 1:(01), 2:(10), 3:(11)
@@ -75,6 +77,20 @@ def dividecell(dim, Parent_vert, nx, ny, nz, ParentWeight=1.0):
                 childverts.append(vert1)
                 childcenters.append(cen1)
     return childverts, childcenters, childweights
+
+
+@nb.njit
+def getEgrid(H, rvecs, deg, centers, cell):
+    Nk, N3 = centers.shape
+    Nw = H.shape[1]
+    Egr = np.zeros((Nk, Nw), dtype=np.float64)
+    for ik in range(Nk):
+        kv = centers[ik]
+        Hk = tbroutines.Hk_njit(H, rvecs, deg, kv, cell)
+        evals = np.linalg.eigvalsh(Hk)
+        Egr[ik] = evals
+    return Egr
+
 
 
 ###=============================================================================================================           
