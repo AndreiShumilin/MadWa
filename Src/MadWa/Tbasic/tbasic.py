@@ -134,6 +134,7 @@ class TBasic:
         self.Irvects = rvects.astype(np.int32)
         self.num_wann = H_ij.shape[1]
         self.num_rvec = len(rvects)
+        self.Rvdict = {}
         for irv, rv in enumerate(self.Irvects):
             self.Rvdict[tuple(rv)] = irv
 

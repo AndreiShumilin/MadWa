@@ -1,9 +1,11 @@
 import numpy as np
 
 from . import wanReads_files as read
+from . import wanReads_win as readwin
+import MadWa.Utils.utils as ut
 
 
-__all__ = ['VASP_Wan_correction_Matrix','reconstructW','WanRes']
+__all__ = ['VASP_Wan_correction_Matrix','reconstructW','WanRes','projHam']
 
 
 def VASP_Wan_correction_Matrix(nb, evals, emin, emax):
@@ -51,7 +53,44 @@ def reconstructW(Amn, U, kpts, Rvecs):
             W[irv] += Wk * phase
     W /= Nk
     return W
-            
+
+
+def projHam(seedname, rvects, RelRvects=None):
+    r"""
+    projects the VASP Hamiltonian on the projection basis (maing a crude TB-model)
+    seedname   -  seedname for w90 files
+    rvects - r-vectors of the resulting Hamiltonian
+    RelRvects - relevant R-vectors, if set the calculations would be made only fo
+                rv-s in RelRvects, but the structure of the Hamiltonian will be controlled 
+                by rvects.
+    """
+    Amn_file = seedname+'.amn'
+    eig_file = seedname+'.eig'
+    win_file = seedname+'.win'
+
+    if RelRvects is None:
+        RelRvects = rvects
+    
+    Amn, pars1 = read.readAmn(Amn_file) 
+    Nb, Nkpts, Nw = pars1
+    Nrv = len(rvects)
+    eig = read.readEig(eig_file, Nkpts, Nb)
+    winD = readwin.readWin(win_file)
+    kpts = winD['kpts']
+
+    Hprj = np.zeros((Nrv, Nw,Nw), dtype=np.complex128)
+    for ikp,kp in enumerate(kpts):
+        eiD = np.diag(eig[ikp])
+        Amn1 = Amn[ikp]
+        for rv in RelRvects:
+            irv = ut.FindRv(rvects, rv)
+            phase = np.exp(-2j * np.pi * np.dot(kp, rv))
+            Hp1 = Amn1.conj().T @ eiD @ Amn1 * phase
+            Hprj[irv] = Hprj[irv] + Hp1
+    Hprj /= Nkpts
+    return Hprj
+
+
 
 
 class WanRes:

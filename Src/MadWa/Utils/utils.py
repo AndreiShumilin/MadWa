@@ -11,6 +11,12 @@ ey = np.array((0.0, 1.0, 0.0), dtype=np.float64)
 ez = np.array((0.0, 0.0, 1.0), dtype=np.float64)
 
 
+s0 = np.array( ((1,0),(0,1)), dtype=np.complex128)   
+sx = np.array( ((0,1),(1,0)), dtype=np.complex128)   
+sy = np.array( ((0,-1j),(1j,0)), dtype=np.complex128)   
+sz = np.array( ((1,0),(0,-1)), dtype=np.complex128)  
+
+
 @nb.njit
 def cellVolume(cell, Dim2D = False):
     a1 = cell[0,...]
@@ -114,4 +120,25 @@ def get_kpath(points, recp=None, N=30):
         Xmarks[i + 1] = length
         
     return kpoi, xx, Xmarks
+
+
+@nb.njit
+def FindRv(rvAr, rv1):
+    r"""
+    tries to find r-vector rv1 in the 
+    array of r-vectors rvAr
+
+    retuns the index and a boolean (found or not)
+    """
+    Nr = rvAr.shape[0]
+    found = False
+    ifou = -1
+    for i in range(Nr):
+        if (rvAr[i] == rv1).all():
+            ifou = i
+            found = True
+            break
+    return ifou, found
+
+
 

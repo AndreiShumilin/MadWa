@@ -205,6 +205,8 @@ class damping:
         yy = []
         vv = []
 
+        const1 = 2*np.pi * self.gfac/self.muCell
+
         for ik in range(self.KGr.N):
             kv = self.KGr.centers[ik]
             wei = self.KGr.weights[ik]
@@ -217,8 +219,8 @@ class damping:
                 e1 = self.Egr[ik,bi]
                 e2 = self.Egr[ik,bj]
                 del1 = gaussDelta(e2,Ef,Esmear)*gaussDelta(e1,Ef,Esmear)
-                v1d += np.real(M1*M2*del1 )
-                v1 += np.real(M1*M2*wei*del1)
+                v1d += np.real(M1*M2*del1 * const1 )
+                v1 += np.real(M1*M2*wei*del1 * const1)
             Res += v1
             xx.append(kv[0])
             yy.append(kv[1])
@@ -231,8 +233,34 @@ class damping:
             col = [cmap(v/np.max(vv)) for v in vv]
             plt.scatter(xx,yy,c=col, s=ms)
         
-        return xx,yy,vv
+        return xx,yy,vv, Res
 
 
+    # def ananlizeKpoint(self, kv, Ef, alp=0, bet=0, Esmear=None, logFoo=print):
+    #     if Esmear is None:
+    #         Esmear = self.Esmear
 
-
+    #     Hk = tbroutines.Hk_njit(self.H, self.rvecs, self.deg, kv, self.cell)
+    #     evals = np.linalg.eigvalsh(Hk)
+    #     logFoo('Energies : \n')
+    #     sE = ''
+    #     for ei in evals:
+    #         sE = sE+str(ei)+', '
+    #     sE = sE + '\n'
+    #     logFoo(sE)
+    #     eeind = self.findEnPairs(evals)
+    #     logFoo(str(eeind)+'\n')
+    #     for bi,bj in eeind:
+    #         M1 = MatrixElement(self.H, self.rvecs, self.deg, kv, self.cell, self.LdH[alp], bi,bj)
+    #         M2 = MatrixElement(self.H, self.rvecs, self.deg, kv, self.cell, self.LdH[bet], bj,bi)
+    #         e1 = self.Egr[ik,bi]
+    #         e2 = self.Egr[ik,bj]
+    #         del1 = gaussDelta(e2,Ef,Esmear)*gaussDelta(e1,Ef,Esmear)
+    #         v1d += np.real(M1*M2*del1 )
+    #         s1 = str(bi) + str(bj) + ': \n'
+    #         s2 = 'M1, M2 = ' + str(M1) + ', ' + str(M2) + '\n'
+    #         s3 = 'del = ' + str(del1) + '\n'
+    #         logFoo(s1)
+    #         logFoo(s2)
+    #         logFoo(s3)
+    #         logFoo('------ \n\n')
